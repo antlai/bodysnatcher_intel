@@ -1,0 +1,6 @@
+*~
+*.pyc
+debs
+/dist/
+/*.egg-info
+node_modules

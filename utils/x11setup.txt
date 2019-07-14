@@ -1,0 +1,36 @@
+To forward X11 from Docker container to SSH to remote X11 client
+------------------------------------------------------
+
+This should be used only for testing, security is broken after these changes...
+
+-Ensure that X11 server is also accessible to Docker bridge and not only the local loop.
+
+   add `X11Forwarding yes` and `X11UseLocalhost no` to /etc/ssh/sshd_config
+   restart sshd
+
+- Use ssh -X ...
+
+- Create X authentication file:
+
+export XAUTH=/tmp/.docker.xauth
+xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | sudo xauth -f $XAUTH nmerge -
+sudo chmod 777 $XAUTH
+
+- Make auth file/DISPLAY visible inside the container, for example:
+
+docker run -v /usr/local/cuda-9.0/lib64:/usr/local/cuda -v /usr/local/lib/realsense:/usr/local/lib/realsense -v /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra  -v $PWD:/usr/src/app -p 7090:7090 --privileged -e DISPLAY=172.17.0.1:14.0 -v $XAUTH:$XAUTH -e XAUTHORITY=$XAUTH   gcr.io/cafjs-k8/root-jetsonpython
+
+  Note that DISPLAY is obtained from the host $DISPLAY replacing the hostname part by  172.17.0.1 (the address of the Docker bridge visible to the container)
+    -e DISPLAY=`echo $DISPLAY | sed 's/^[^:]*\(.*\)/172.17.0.1\1/'`
+
+
+See https://stackoverflow.com/questions/48235040/run-x-application-in-a-docker-container-reliably-on-a-server-connected-via-ssh-w for more details
+
+
+And then, to trigger partitions display from command line:
+
+curl http://demo-newdevice1.local:7090/parts?options="\{\"display\":true\}"
+
+To make X window larger:
+
+xzoom -mag 8
